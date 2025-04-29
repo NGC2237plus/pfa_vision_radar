@@ -82,18 +82,28 @@ guess_list = {
 guess_value = {
     "B1": 0,
     "B2": 0,
+    "B3": 0,
+    "B4": 0,
     "B7": 0,
+
     "R1": 0,
     "R2": 0,
+    "R3": 0,
+    "R4": 0,
     "R7": 0
 }
 # 当前标记进度（用于判断是否预测正确正确）
 guess_value_now = {
     "B1": 0,
     "B2": 0,
+    "B3": 0,
+    "B4": 0,
     "B7": 0,
+
     "R1": 0,
     "R2": 0,
+    "R3": 0,
+    "R4": 0,
     "R7": 0
 }
 
@@ -119,12 +129,15 @@ mapping_table = {
 guess_table = {
     "R1": [(1100, 1400), (900, 1400)],
     "R2": [(870, 1100), (1340, 680)],
+    "R3": [(870, 1100), (1340, 680)],
+    "R4": [(870, 1100), (1340, 680)],
     "R7": [(560, 630), (560, 870)],
+
     "B1": [(1700, 100), (1900, 100)],
-    # "B1": [(0, 0), (19.0, 1.0)],
     "B2": [(1930, 400), (1460, 820)],
+    "B3": [(1460, 820), (1930, 400)],
+    "B4": [(1460, 820), (1930, 400)],
     "B7": [(2240, 870), (2240, 603)],
-    # "B7": [(0, 0), (22.4, 6.3)]
 }
 
 
@@ -323,18 +336,28 @@ def ser_send():
     guess_time = {
         'B1': 0,
         'B2': 0,
+        'B3': 0,
+        'B4': 0,
         'B7': 0,
+
         'R1': 0,
         'R2': 0,
+        'R3': 0,
+        'R4': 0,
         'R7': 0,
     }
     # 预测点索引
     guess_index = {
         'B1': 0,
         'B2': 0,
+        'B3': 0,
+        'B4': 0,
         'B7': 0,
+
         'R1': 0,
         'R2': 0,
+        'R3': 0,
+        'R4': 0,
         'R7': 0,
     }
 
@@ -432,27 +455,30 @@ def ser_send():
                     if all_filter_data.get('B1', False):
                         send_map['B1'] = send_point_B('B1', all_filter_data)
                 else:
-                    send_map['B1'] = (0, 0)
+                    send_map['B1'] = send_point_guess('B1', guess_time_limit)
 
                 if not guess_list.get('B2'):
                     if all_filter_data.get('B2', False):
                         send_map['B2'] = send_point_B('B2', all_filter_data)
                 else:
-                    send_map['B2'] = (0, 0)
+                    send_map['B2'] = send_point_guess('B2', guess_time_limit)
+                    # send_map['B2'] = (0, 0)
 
                 # 步兵3号
                 if not guess_list.get('B3'):
                     if all_filter_data.get('B3', False):
                         send_map['B3'] = send_point_B('B3', all_filter_data)
                 else:
-                    send_map['B3'] = (0, 0)
+                    send_map['B3'] = send_point_guess('B3', guess_time_limit)
+                    # send_map['B3'] = (0, 0)
 
                 # 步兵4号
                 if not guess_list.get('B4'):
                     if all_filter_data.get('B4', False):
                         send_map['B4'] = send_point_B('B4', all_filter_data)
                 else:
-                    send_map['B4'] = (0, 0)
+                    send_map['B4'] = send_point_guess('B4', guess_time_limit)
+                    # send_map['B4'] = (0, 0)
 
                 if not guess_list.get('B5'):
                     if all_filter_data.get('B5', False):
@@ -473,27 +499,31 @@ def ser_send():
                     if all_filter_data.get('R1', False):
                         send_map['R1'] = send_point_R('R1', all_filter_data)
                 else:
-                    send_map['R1'] = (0, 0)
+                    send_map['R1'] = send_point_R('R1', guess_time_limit)
+                    # send_map['R1'] = (0, 0)
 
                 if not guess_list.get('R2'):
                     if all_filter_data.get('R2', False):
                         send_map['R2'] = send_point_R('R2', all_filter_data)
                 else:
-                    send_map['R2'] = (0, 0)
+                    send_map['R2'] = send_point_R('R2', guess_time_limit)
+                    # send_map['R2'] = (0, 0)
 
                 # 步兵3号
                 if not guess_list.get('R3'):
                     if all_filter_data.get('R3', False):
                         send_map['R3'] = send_point_R('R3', all_filter_data)
                 else:
-                    send_map['R3'] = (0, 0)
+                    send_map['R3'] = send_point_R('R3', guess_time_limit)
+                    # send_map['R3'] = (0, 0)
 
                 # 步兵4号
                 if not guess_list.get('R4'):
                     if all_filter_data.get('R4', False):
                         send_map['R4'] = send_point_R('R4', all_filter_data)
                 else:
-                    send_map['R4'] = (0, 0)
+                    send_map['R4'] = send_point_R('R4', guess_time_limit)
+                    # send_map['R4'] = (0, 0)
 
                 if not guess_list.get('R5'):
                     if all_filter_data.get('R5', False):
@@ -520,10 +550,14 @@ def ser_send():
                 if state == 'R':
                     guess_value['B1'] = guess_value_now.get('B1')
                     guess_value['B2'] = guess_value_now.get('B2')
+                    guess_value['B3'] = guess_value_now.get('B3')
+                    guess_value['B4'] = guess_value_now.get('B4')
                     guess_value['B7'] = guess_value_now.get('B7')
                 else:
                     guess_value['R1'] = guess_value_now.get('R1')
                     guess_value['R2'] = guess_value_now.get('R2')
+                    guess_value['R3'] = guess_value_now.get('R3')
+                    guess_value['R4'] = guess_value_now.get('R4')
                     guess_value['R7'] = guess_value_now.get('R7')
 
             # 判断飞镖的目标是否切换，切换则尝试发动双倍易伤
@@ -598,10 +632,14 @@ def ser_receive():
                     if state == 'R':
                         guess_value_now['B1'] = progress_list[0]
                         guess_value_now['B2'] = progress_list[1]
+                        guess_value_now['B3'] = progress_list[2]
+                        guess_value_now['B4'] = progress_list[3]
                         guess_value_now['B7'] = progress_list[5]
                     else:
                         guess_value_now['R1'] = progress_list[0]
                         guess_value_now['R2'] = progress_list[1]
+                        guess_value_now['R3'] = progress_list[2]
+                        guess_value_now['R4'] = progress_list[3]
                         guess_value_now['R7'] = progress_list[5]
                 if vulnerability_result is not None:
                     received_cmd_id2, received_data2, received_seq2 = vulnerability_result
