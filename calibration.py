@@ -182,12 +182,15 @@ class MyUI(QWidget):
         self.button4.clicked.connect(self.button4_clicked)
         self.height = 0
         self.T = []
-        if self.state == 'R':
+        if camera_mode == 'hik_test':
+            self.save_path = 'arrays_test.npy'
+            right_image_path = "标定测试.png"  # 替换为右边图片的路径
+        elif self.state == 'R':
             self.save_path = 'arrays_test_red.npy'
-            right_image_path = "images/map_red.jpg"  # 替换为右边图片的路径
+            right_image_path = "images/2025map_red.png"  # 替换为右边图片的路径
         else:
             self.save_path = 'arrays_test_blue.npy'
-            right_image_path = "images/map_blue.jpg"  # 替换为右边图片的路径
+            right_image_path = "images/2025map_blue.png"  # 替换为右边图片的路径
 
         # _,left_image = self.camera_capture.read()
         left_image = camera_image
@@ -253,7 +256,6 @@ class MyUI(QWidget):
 
         left_pixmap = self.convert_cvimage_to_pixmap(self.left_image)
         self.left_top_label.setPixmap(left_pixmap)
-
 
         right_pixmap = self.convert_cvimage_to_pixmap(self.right_image)
         self.right_top_label.setPixmap(right_pixmap)
@@ -357,13 +359,13 @@ class MyUI(QWidget):
 
 
 if __name__ == '__main__':
-    camera_mode = 'hik'  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
+    camera_mode = 'test'  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
     camera_image = None
-    state = 'B'  # R:红方/B:蓝方
+    state = 'R'  # R:红方/B:蓝方
 
     if camera_mode == 'test':
         camera_image = cv2.imread('images/test_image.jpg')
-    elif camera_mode == 'hik':
+    elif camera_mode in ['hik', 'hik_test']:
         # 海康相机图像获取线程
         from hik_camera import call_back_get_image, start_grab_and_get_data_size, close_and_destroy_device, set_Value, \
             get_Value, image_control
