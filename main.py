@@ -12,12 +12,12 @@ from detect_function import YOLOv5Detector
 from RM_serial_py.ser_api import build_send_packet, receive_packet, Radar_decision, \
     build_data_decision, build_data_radar_all
 
-state = 'R'  # R:红方/B:蓝方
+state = 'B'  # R:红方/B:蓝方
 USART = True
 user_com = 'COM7'
 user_mode = 'test'
 user_map = 'images/2025map.png'
-user_img_test = 'hik_test.png'
+user_img_test = 'images/test_image.jpg'
 user_ExposureTime = 30000
 user_Gain = 8
 
@@ -30,7 +30,8 @@ if state == 'R':
     mask_image = cv2.imread("images/2025map_mask.png")  # 加载红发落点判断掩码
     # mask_image = cv2.imread("output.png")  # 加载红发落点判断掩码
 else:
-    loaded_arrays = np.load('arrays_test_blue.npy')  # 加载标定好的仿射变换矩阵
+    # loaded_arrays = np.load('arrays_test_blue.npy')  # 加载标定好的仿射变换矩阵
+    loaded_arrays = np.load('arrays_test.npy')
     # map_image = cv2.imread("images/map_blue.jpg")  # 加载蓝方视角地图
     # mask_image = cv2.imread("images/map_mask.jpg")  # 加载蓝方落点判断掩码
     # map_image = cv2.imread("images/2025map_blue.png")  # 加载蓝方视角地图
@@ -129,7 +130,7 @@ mapping_table = {
 guess_table = {
     "R1": [(1100, 1400), (900, 1400)],
     "R2": [(870, 1100), (1340, 680)],
-    "R3": [(870, 1100), (1340, 680)],
+    "R3": [(100, 100), (200, 200), (300, 300), (400, 400)],
     "R4": [(870, 1100), (1340, 680)],
     "R7": [(560, 630), (560, 870)],
 
@@ -406,7 +407,10 @@ def ser_send():
         # 进度未满 and 预测进度没有涨 and 超过单点预测时间上限，同时满足则切换另一个点预测
         if guess_value_now.get(send_name) < 120 and guess_value_now.get(send_name) - guess_value.get(
                 send_name) <= 0 and time.time() - guess_time.get(send_name) >= guess_time_limit:
-            guess_index[send_name] = 1 - guess_index[send_name]  # 每个ID不一样
+            # guess_index[send_name] = 1 - guess_index[send_name]  # 每个ID不一样
+            points = guess_table.get(send_name)
+            if points:  # 确保存在坐标点
+                guess_index[send_name] = (guess_index[send_name] + 1) % len(points)
             guess_time[send_name] = time.time()
         if guess_value_now.get(send_name) - guess_value.get(send_name) > 0:
             guess_time[send_name] = time.time()
@@ -499,14 +503,14 @@ def ser_send():
                     if all_filter_data.get('R1', False):
                         send_map['R1'] = send_point_R('R1', all_filter_data)
                 else:
-                    send_map['R1'] = send_point_R('R1', guess_time_limit)
+                    send_map['R1'] = send_point_guess('R1', guess_time_limit)
                     # send_map['R1'] = (0, 0)
 
                 if not guess_list.get('R2'):
                     if all_filter_data.get('R2', False):
                         send_map['R2'] = send_point_R('R2', all_filter_data)
                 else:
-                    send_map['R2'] = send_point_R('R2', guess_time_limit)
+                    send_map['R2'] = send_point_guess('R2', guess_time_limit)
                     # send_map['R2'] = (0, 0)
 
                 # 步兵3号
@@ -514,7 +518,7 @@ def ser_send():
                     if all_filter_data.get('R3', False):
                         send_map['R3'] = send_point_R('R3', all_filter_data)
                 else:
-                    send_map['R3'] = send_point_R('R3', guess_time_limit)
+                    send_map['R3'] = send_point_guess('R3', guess_time_limit)
                     # send_map['R3'] = (0, 0)
 
                 # 步兵4号
@@ -522,7 +526,7 @@ def ser_send():
                     if all_filter_data.get('R4', False):
                         send_map['R4'] = send_point_R('R4', all_filter_data)
                 else:
-                    send_map['R4'] = send_point_R('R4', guess_time_limit)
+                    send_map['R4'] = send_point_guess('R4', guess_time_limit)
                     # send_map['R4'] = (0, 0)
 
                 if not guess_list.get('R5'):
