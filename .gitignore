@@ -136,3 +136,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+**/__pycache__/
+/RM_serial_py/__pycache__
