@@ -817,6 +817,17 @@ while True:
                                     Y_M = y_c
                                     # Z_M = 600
                                     filter.add_data(cls, X_M, Y_M)
+                                else:
+                                    mapped_point = cv2.perspectiveTransform(camera_point.reshape(1, 1, 2), M_height_r)
+                                    # 限制转换后的点在地图范围内
+                                    x_c = max(int(mapped_point[0][0][0]), 0)
+                                    y_c = max(int(mapped_point[0][0][1]), 0)
+                                    x_c = min(x_c, width)
+                                    y_c = min(y_c, height)
+                                    X_M = x_c
+                                    Y_M = y_c
+                                    # Z_M = 400
+                                    filter.add_data(cls, X_M, Y_M)
 
     # 获取所有识别到的机器人坐标
     all_filter_data = filter.get_all_data()
