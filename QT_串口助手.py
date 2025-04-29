@@ -25,6 +25,8 @@ class RadarGUI(QWidget):
         self.resize(1200, 800)
         self.ser = None
         self.robot_labels = {}
+        self.state = 'R'  # 初始为红方
+        self.last_data = None  # 保存最后一次接收的数据
         self.init_ui()
         self.timer = QTimer()
         self.timer.timeout.connect(self.read_serial_data)
@@ -43,7 +45,12 @@ class RadarGUI(QWidget):
         self.baud_combo.setCurrentText('115200')
         self.open_btn = QPushButton("打开串口")
         self.open_btn.clicked.connect(self.toggle_serial)
+        self.side_combo = QComboBox()
+        self.side_combo.addItems(['红方', '蓝方'])
+        self.side_combo.currentTextChanged.connect(self.update_side)
 
+        top_layout.addWidget(QLabel("当前阵营:"))
+        top_layout.addWidget(self.side_combo)
         top_layout.addWidget(QLabel("串口:"))
         top_layout.addWidget(self.serial_combo)
         top_layout.addWidget(self.refresh_btn)
@@ -58,11 +65,12 @@ class RadarGUI(QWidget):
         # 左侧坐标显示
         left_group = QGroupBox("机器人坐标 (单位：cm)")
         left_layout = QVBoxLayout()
+        self.robot_labels = {}  # 存储标签对象
         for name in ['R1', 'R2', 'R3', 'R4', 'R5', 'R7']:
-            label = QLabel(f"{name}：未接收")
-            label.setStyleSheet("font-size: 30px; padding: 1px;")
+            label = QLabel()
             self.robot_labels[name] = label
             left_layout.addWidget(label)
+        self.update_display()  # 初始显示更新
         left_group.setLayout(left_layout)
         middle_layout.addWidget(left_group, 1)
 
@@ -152,6 +160,32 @@ class RadarGUI(QWidget):
             self.serial_combo.addItem(display_name, userData=port.device)
             # print(port.description)
 
+    def update_side(self, text):
+        """切换阵营时更新显示"""
+        self.state = 'R' if text == '红方' else 'B'
+        self.update_display()  # 立即更新显示
+        if self.last_data:
+            self.update_robot_coords(self.last_data)
+
+    def update_display(self):
+        """更新所有坐标显示（名称和颜色）"""
+        color = '#0000FF' if self.state == 'R' else '#FF0000'  # 红方显示蓝色，蓝方显示红色
+        prefix = 'B' if self.state == 'R' else 'R'  # 显示对方阵营标识
+
+        for name in self.robot_labels:
+            display_name = name.replace('R', prefix)
+            label = self.robot_labels[name]
+
+            # 保留当前坐标状态
+            current_status = "未接收" if label.text() == "" else label.text().split("：")[1]
+            label.setText(f"{display_name}：{current_status}")
+            label.setStyleSheet(f"""
+                color: {color};
+                font-size: 30px;
+                padding: 1px;
+                font-weight: bold;
+            """)
+
     def toggle_serial(self):
         if self.ser and self.ser.is_open:
             self.ser.close()
@@ -202,6 +236,7 @@ class RadarGUI(QWidget):
                     return
 
                 if len(data) >= 24:
+                    self.last_data = data  # 保存最新数据
                     self.update_robot_coords(data)
             except Exception as e:
                 print(f"串口读取错误: {str(e)}")
@@ -212,12 +247,28 @@ class RadarGUI(QWidget):
             x = int.from_bytes(data[i * 4:i * 4 + 2], 'little')
             y = int.from_bytes(data[i * 4 + 2:i * 4 + 4], 'little')
 
+            if self.state == 'R':
+                display_name = name.replace('R', 'B')
+                color = '#0000FF'  # 蓝色
+            else:
+                display_name = name
+                color = '#FF0000'  # 红色
+
             if x == 0 and y == 0:
-                text = f"{name}：未发送"
+                text = f"{display_name}：未发送"
             else:
                 x = min(max(0, x), 2800)
                 y = min(max(0, y), 1500)
-                text = f"{name}：({x}, {y})"
+                text = f"{display_name}：({x}, {y})"
+
+            label = self.robot_labels[name]
+            label.setText(text)
+            label.setStyleSheet(f"""
+                color: {color};
+                font-size: 30px;
+                padding: 1px;
+                font-weight: bold;
+            """)
             self.robot_labels[name].setText(text)
 
     def send_vulnerability_flag(self):
@@ -261,6 +312,7 @@ class RadarGUI(QWidget):
 
 
 if __name__ == '__main__':
+    state = 'R'  # R:红方/B:蓝方
     app = QApplication(sys.argv)
     gui = RadarGUI()
     gui.show()

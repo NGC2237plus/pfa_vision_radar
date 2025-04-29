@@ -12,7 +12,7 @@ from detect_function import YOLOv5Detector
 from RM_serial_py.ser_api import build_send_packet, receive_packet, Radar_decision, \
     build_data_decision, build_data_radar_all
 
-state = 'B'  # R:红方/B:蓝方
+state = 'R'  # R:红方/B:蓝方
 USART = True
 user_com = 'COM7'
 user_mode = 'test'
