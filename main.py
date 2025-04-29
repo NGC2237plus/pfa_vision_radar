@@ -4,26 +4,37 @@ from collections import deque
 import serial
 from information_ui import draw_information_ui
 
-    
 import sys
-
 
 import cv2
 import numpy as np
 from detect_function import YOLOv5Detector
-from RM_serial_py.ser_api import  build_send_packet, receive_packet, Radar_decision, \
+from RM_serial_py.ser_api import build_send_packet, receive_packet, Radar_decision, \
     build_data_decision, build_data_radar_all
 
-state = 'B'  # R:红方/B:蓝方
+state = 'R'  # R:红方/B:蓝方
+USART = True
+user_com = 'COM7'
+user_mode = 'test'
+user_map = 'images/2025map.png'
+user_img_test = 'hik_test.png'
+user_ExposureTime = 30000
+user_Gain = 8
 
 if state == 'R':
-    loaded_arrays = np.load('arrays_test_red.npy')  # 加载标定好的仿射变换矩阵
-    map_image = cv2.imread("images/map_red.jpg")  # 加载红方视角地图
-    mask_image = cv2.imread("images/map_mask.jpg")  # 加载红发落点判断掩码
+    # loaded_arrays = np.load('arrays_test_red.npy')  # 加载标定好的仿射变换矩阵
+    loaded_arrays = np.load('arrays_test.npy')  # 加载标定好的仿射变换矩阵
+    # map_image = cv2.imread("images/map_red.jpg")  # 加载红方视角地图
+    # mask_image = cv2.imread("images/map_mask.jpg")  # 加载红发落点判断掩码
+    # map_image = cv2.imread("images/2025map_red.png")  # 加载红方视角地图
+    mask_image = cv2.imread("images/2025map_mask.png")  # 加载红发落点判断掩码
+    # mask_image = cv2.imread("output.png")  # 加载红发落点判断掩码
 else:
     loaded_arrays = np.load('arrays_test_blue.npy')  # 加载标定好的仿射变换矩阵
-    map_image = cv2.imread("images/map_blue.jpg")  # 加载蓝方视角地图
-    mask_image = cv2.imread("images/map_mask.jpg")  # 加载蓝方落点判断掩码
+    # map_image = cv2.imread("images/map_blue.jpg")  # 加载蓝方视角地图
+    # mask_image = cv2.imread("images/map_mask.jpg")  # 加载蓝方落点判断掩码
+    # map_image = cv2.imread("images/2025map_blue.png")  # 加载蓝方视角地图
+    mask_image = cv2.imread("images/2025map_mask.png")  # 加载蓝方落点判断掩码
 
 # 导入战场每个高度的不同仿射变化矩阵
 M_height_r = loaded_arrays[1]  # R型高地
@@ -45,7 +56,9 @@ chances_flag = 1  # 双倍易伤触发标志位，需要从1递增，每小局�
 progress_list = [-1, -1, -1, -1, -1, -1]  # 标记进度列表
 
 # 加载战场地图
-map_backup = cv2.imread("images/map.jpg")
+# map_backup = cv2.imread("images/map.jpg")
+map_backup = cv2.imread(user_map)
+# map_backup = cv2.imread("hik_test.png")
 map = map_backup.copy()
 
 # 初始化盲区预测列表
@@ -264,8 +277,8 @@ def hik_camera_get():
           get_Value(cam, param_type="float_value", node_name="AcquisitionFrameRate"))
 
     # 设置设备的一些参数
-    set_Value(cam, param_type="float_value", node_name="ExposureTime", node_value=16000)  # 曝光时间
-    set_Value(cam, param_type="float_value", node_name="Gain", node_value=17.9)  # 增益值
+    set_Value(cam, param_type="float_value", node_name="ExposureTime", node_value=user_ExposureTime)  # 曝光时间
+    set_Value(cam, param_type="float_value", node_name="Gain", node_value=user_Gain)  # 增益值
     # 开启设备取流
     start_grab_and_get_data_size(cam)
     # 主动取流方式抓取图像
@@ -342,7 +355,8 @@ def ser_send():
         # waste_time = back_time - front_time
         # # print("发送：",send_name, seq_s)
         # time.sleep(0.1 - waste_time)
-        return ser_x,ser_y
+        return ser_x, ser_y
+
     # 发送红发机器人坐标
     def send_point_R(send_name, all_filter_data):
         # front_time = time.time()
@@ -360,7 +374,7 @@ def ser_send():
         # waste_time = back_time - front_time
         # # print('发送：',send_name, seq_s)
         # time.sleep(0.1 - waste_time)
-        return ser_x,ser_y
+        return ser_x, ser_y
 
     # 发送盲区预测点坐标
     def send_point_guess(send_name, guess_time_limit):
@@ -383,7 +397,8 @@ def ser_send():
         # waste_time = back_time - front_time
         # print('发送：',send_name, seq_s)
         # time.sleep(0.1 - waste_time)
-        return guess_table.get(send_name)[guess_index.get(send_name)][0],guess_table.get(send_name)[guess_index.get(send_name)][1]
+        return guess_table.get(send_name)[guess_index.get(send_name)][0], \
+            guess_table.get(send_name)[guess_index.get(send_name)][1]
 
     time_s = time.time()
     target_last = 0  # 上一帧的飞镖目标
@@ -421,14 +436,14 @@ def ser_send():
 
                 if not guess_list.get('B2'):
                     if all_filter_data.get('B2', False):
-                        send_map['B2'] = send_point_B('B2',  all_filter_data)
+                        send_map['B2'] = send_point_B('B2', all_filter_data)
                 else:
                     send_map['B2'] = (0, 0)
 
                 # 步兵3号
                 if not guess_list.get('B3'):
                     if all_filter_data.get('B3', False):
-                        send_map['B3'] = send_point_B('B3',  all_filter_data)
+                        send_map['B3'] = send_point_B('B3', all_filter_data)
                 else:
                     send_map['B3'] = (0, 0)
 
@@ -441,7 +456,7 @@ def ser_send():
 
                 if not guess_list.get('B5'):
                     if all_filter_data.get('B5', False):
-                        send_map['B5'] = send_point_B('B5',  all_filter_data)
+                        send_map['B5'] = send_point_B('B5', all_filter_data)
                 else:
                     send_map['B5'] = (0, 0)
 
@@ -452,7 +467,6 @@ def ser_send():
                 else:
                     if all_filter_data.get('B7', False):
                         send_map['B7'] = send_point_B('B7', all_filter_data)
-
 
             if state == 'B':
                 if not guess_list.get('R1'):
@@ -495,11 +509,11 @@ def ser_send():
                     if all_filter_data.get('R7', False):
                         send_map['R7'] = send_point_R('R7', all_filter_data)
 
-            ser_data = build_data_radar_all(send_map,state)
+            ser_data = build_data_radar_all(send_map, state)
             packet, seq = build_send_packet(ser_data, seq, [0x03, 0x05])
             ser1.write(packet)
             time.sleep(0.2)
-            print(send_map,seq)
+            # print(send_map,seq)
             # 超过单点预测时间上限，更新上次预测的进度
             if time.time() - update_time > guess_time_limit:
                 update_time = time.time()
@@ -580,7 +594,7 @@ def ser_receive():
                 # 更新裁判系统数据，标记进度、易伤、飞镖目标
                 if progress_result is not None:
                     received_cmd_id1, received_data1, received_seq1 = progress_result
-                    progress_list = list(received_data1)
+                    progress_list = get_low_order_bit_list(received_data1)
                     if state == 'R':
                         guess_value_now['B1'] = progress_list[0]
                         guess_value_now['B2'] = progress_list[1]
@@ -609,38 +623,58 @@ def ser_receive():
         time.sleep(0.5)
 
 
+def get_low_order_bit_list(received_data):
+    # 提取字节的整数值
+    if isinstance(received_data, bytes):
+        byte_value = received_data[0]
+    else:
+        byte_value = received_data  # 假设已经是整数
+
+    # 生成低位在前的位列表
+    bit_list = [(byte_value >> i) & 1 for i in range(8)]
+    bit_list.insert(4, 0)
+    bit_list = [x * 120 for x in bit_list]
+    for _ in range(3):
+        bit_list.pop()
+
+    return bit_list
+
+
 # 创建机器人坐标滤波器
 filter = Filter(window_size=3, max_inactive_time=2)
 
 # 加载模型，实例化机器人检测器和装甲板检测器
-weights_path = 'models/car.onnx'  # 建议把模型转换成TRT的engine模型，推理速度提升10倍，转换方式看README
-weights_path_next = 'models/armor.onnx'
-# weights_path = 'models/car.engine'
-# weights_path_next = 'models/armor.engine'
+# weights_path = 'models/car.onnx'  # 建议把模型转换成TRT的engine模型，推理速度提升10倍，转换方式看README
+# weights_path_next = 'models/armor.onnx'
+weights_path = 'models/car.engine'
+weights_path_next = 'models/armor.engine'
 detector = YOLOv5Detector(weights_path, data='yaml/car.yaml', conf_thres=0.1, iou_thres=0.5, max_det=14, ui=True)
 detector_next = YOLOv5Detector(weights_path_next, data='yaml/armor.yaml', conf_thres=0.50, iou_thres=0.2,
                                max_det=1,
                                ui=True)
 
-
 # 图像测试模式（获取图像根据自己的设备，在）
-camera_mode = 'test'  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
-ser1 = serial.Serial('COM19', 115200, timeout=1)  # 串口，替换 'COM1' 为你的串口号
-# 串口接收线程
-thread_receive = threading.Thread(target=ser_receive, daemon=True)
-thread_receive.start()
-
-# 串口发送线程
-thread_list = threading.Thread(target=ser_send, daemon=True)
-thread_list.start()
+camera_mode = user_mode  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
+if USART:
+    ser1 = serial.Serial(user_com, 115200, timeout=1)  # 串口，替换 'COM1' 为你的串口号
+    # 串口接收线程
+    thread_receive = threading.Thread(target=ser_receive, daemon=True)
+    thread_receive.start()
+    #
+    # 串口发送线程
+    thread_list = threading.Thread(target=ser_send, daemon=True)
+    thread_list.start()
 
 camera_image = None
 
 if camera_mode == 'test':
-    camera_image = cv2.imread('images/test_image.jpg')
-elif camera_mode == 'hik':
+    # camera_image = cv2.imread('images/test_image.jpg')
+    camera_image = cv2.imread(user_img_test)
+elif camera_mode in ['hik', 'hik_test']:
     # 海康相机图像获取线程
-    from hik_camera import call_back_get_image, start_grab_and_get_data_size, close_and_destroy_device, set_Value, get_Value,image_control
+    from hik_camera import call_back_get_image, start_grab_and_get_data_size, close_and_destroy_device, set_Value, \
+        get_Value, image_control
+
     if sys.platform.startswith("win"):
         from MvImport.MvCameraControl_class import *
     else:
@@ -752,7 +786,11 @@ while True:
                     color_m = (0, 0, 255)
                 else:
                     color_m = (255, 0, 0)
-                if state == 'R':
+
+                if camera_mode == 'hik_test':
+                    if state == 'R':
+                        filtered_xyz = (2800 - xyxy[1], xyxy[0] - 1000)
+                elif state == 'R':
                     filtered_xyz = (2800 - xyxy[1], xyxy[0])  # 缩放坐标到地图图像
                 else:
                     filtered_xyz = (xyxy[1], 1500 - xyxy[0])  # 缩放坐标到地图图像
@@ -762,8 +800,12 @@ while True:
                     cv2.putText(map, str(name),
                                 (int(filtered_xyz[0]) - 5, int(filtered_xyz[1]) + 5),
                                 cv2.FONT_HERSHEY_SIMPLEX, 2.5, (255, 255, 255), 5)
-                    ser_x = int(filtered_xyz[0]) * 10 / 10
-                    ser_y = int(1500 - filtered_xyz[1]) * 10 / 10
+                    if camera_mode == 'hik_test':
+                        ser_x = int(filtered_xyz[0])
+                        ser_y = int(500 - filtered_xyz[1])
+                    else:
+                        ser_x = int(filtered_xyz[0]) * 10 / 10
+                        ser_y = int(1500 - filtered_xyz[1]) * 10 / 10
                     cv2.putText(map, "(" + str(ser_x) + "," + str(ser_y) + ")",
                                 (int(filtered_xyz[0]) - 100, int(filtered_xyz[1]) + 60),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
