@@ -114,3 +114,43 @@ class YOLOv5Detector:
         # LOGGER.info(f'({t3 - t2:.3f}s)')
 
         return detections
+
+
+if __name__ == "__main__":
+    import cv2
+
+    # 权重路径（替换为你实际的权重文件路径）
+    weights_path_next = 'models/armor.engine'
+    # weights_path_next = 'weights/best.pt'  # 示例路径，需根据实际情况修改
+
+    # 创建检测器实例
+    detector_next = YOLOv5Detector(weights_path_next, data='yaml/armor.yaml', conf_thres=0.50, iou_thres=0.2,
+                                   max_det=1, ui=True, device="0")
+
+    # 打开电脑摄像头
+    cap = cv2.VideoCapture(0)
+
+    if not cap.isOpened():
+        print("无法打开摄像头")
+        sys.exit()
+
+    print("按 'q' 退出")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("无法读取摄像头图像")
+            break
+
+        # 进行目标检测
+        results = detector_next.predict(frame)
+
+        # 显示识别结果（带框图像）
+        cv2.imshow("YOLOv5 Detection", frame)
+
+        # 按 'q' 键退出循环
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
