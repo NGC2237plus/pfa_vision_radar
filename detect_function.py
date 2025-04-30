@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     # 创建检测器实例
     detector_next = YOLOv5Detector(weights_path_next, data='yaml/armor.yaml', conf_thres=0.50, iou_thres=0.2,
-                                   max_det=1, ui=True, device="0")
+                                   max_det=5, ui=True, device="0")
 
     # 打开电脑摄像头
     cap = cv2.VideoCapture(0)
