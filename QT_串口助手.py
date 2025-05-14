@@ -1,6 +1,6 @@
 """
 @FileName：   QT_串口助手.py
-@Description：描述
+@Description：裁判系统模拟
 @Author：     NGC2237
 @Version:     1.0
 @Time：       2025/4/26
@@ -25,8 +25,8 @@ class RadarGUI(QWidget):
         self.resize(1200, 800)
         self.ser = None
         self.robot_labels = {}
-        self.state = 'R'  # 初始为红方
-        self.last_data = None  # 保存最后一次接收的数据
+        self.state = 'R'  # 初始
+        self.last_data = None
         self.init_ui()
         self.timer = QTimer()
         self.timer.timeout.connect(self.read_serial_data)
@@ -35,7 +35,6 @@ class RadarGUI(QWidget):
     def init_ui(self):
         main_layout = QVBoxLayout()
 
-        # 顶部串口配置区域
         top_layout = QHBoxLayout()
         self.serial_combo = QComboBox()
         self.refresh_btn = QPushButton("刷新端口")
@@ -59,22 +58,20 @@ class RadarGUI(QWidget):
         top_layout.addWidget(self.open_btn)
         main_layout.addLayout(top_layout)
 
-        # 主内容区域
         middle_layout = QHBoxLayout()
 
         # 左侧坐标显示
         left_group = QGroupBox("机器人坐标 (单位：cm)")
         left_layout = QVBoxLayout()
-        self.robot_labels = {}  # 存储标签对象
+        self.robot_labels = {}
         for name in ['R1', 'R2', 'R3', 'R4', 'R5', 'R7']:
             label = QLabel()
             self.robot_labels[name] = label
             left_layout.addWidget(label)
-        self.update_display()  # 初始显示更新
+        self.update_display()
         left_group.setLayout(left_layout)
         middle_layout.addWidget(left_group, 1)
 
-        # 右侧数据区域
         right_layout = QVBoxLayout()
 
         # 接收数据区
@@ -100,7 +97,6 @@ class RadarGUI(QWidget):
         middle_layout.addLayout(right_layout, 2)
         main_layout.addLayout(middle_layout)
 
-        # 底部控制区域
         bottom_layout = QHBoxLayout()
         self.checkboxes = {
             'R1': QCheckBox("1号英雄"),
@@ -163,12 +159,12 @@ class RadarGUI(QWidget):
     def update_side(self, text):
         """切换阵营时更新显示"""
         self.state = 'R' if text == '红方' else 'B'
-        self.update_display()  # 立即更新显示
+        self.update_display()  # 立即更新
         if self.last_data:
             self.update_robot_coords(self.last_data)
 
     def update_display(self):
-        """更新所有坐标显示（名称和颜色）"""
+        """更新所有坐标显示"""
         color = '#0000FF' if self.state == 'R' else '#FF0000'  # 红方显示蓝色，蓝方显示红色
         prefix = 'B' if self.state == 'R' else 'R'  # 显示对方阵营标识
 
@@ -176,7 +172,6 @@ class RadarGUI(QWidget):
             display_name = name.replace('R', prefix)
             label = self.robot_labels[name]
 
-            # 保留当前坐标状态
             current_status = "未接收" if label.text() == "" else label.text().split("：")[1]
             label.setText(f"{display_name}：{current_status}")
             label.setStyleSheet(f"""
@@ -249,10 +244,10 @@ class RadarGUI(QWidget):
 
             if self.state == 'R':
                 display_name = name.replace('R', 'B')
-                color = '#0000FF'  # 蓝色
+                color = '#0000FF'
             else:
                 display_name = name
-                color = '#FF0000'  # 红色
+                color = '#FF0000'
 
             if x == 0 and y == 0:
                 text = f"{display_name}：未发送"
@@ -312,7 +307,7 @@ class RadarGUI(QWidget):
 
 
 if __name__ == '__main__':
-    state = 'R'  # R:红方/B:蓝方
+    state = 'R'
     app = QApplication(sys.argv)
     gui = RadarGUI()
     gui.show()
