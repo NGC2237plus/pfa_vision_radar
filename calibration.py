@@ -133,6 +133,11 @@ def video_capture_get():
 
 
 color = [(255, 255, 255), (0, 255, 0), (0, 0, 255)]
+big = 66
+L_width = 27 * big  # 1350
+L_height = 20 * big  # 1000
+R_width = 11 * big  # 550
+R_height = 18 * big  # 900
 
 
 class MyUI(QWidget):
@@ -145,7 +150,7 @@ class MyUI(QWidget):
         # 左上角部分
         self.state = state
         self.left_top_label = QLabel(self)
-        self.left_top_label.setFixedSize(1350, 1000)
+        self.left_top_label.setFixedSize(L_width, L_height)
         self.left_top_label.setStyleSheet("border: 2px solid black;")
         self.left_top_label.mousePressEvent = self.left_top_clicked
         self.image_points = [[(0, 0), (0, 0), (0, 0), (0, 0)], [(0, 0), (0, 0), (0, 0), (0, 0)],
@@ -156,7 +161,7 @@ class MyUI(QWidget):
         self.map_count = 0
         # 右上角部分
         self.right_top_label = QLabel(self)
-        self.right_top_label.setFixedSize(550, 900)
+        self.right_top_label.setFixedSize(R_width, R_height)
         self.right_top_label.setStyleSheet("border: 2px solid black;")
         self.right_top_label.mousePressEvent = self.right_top_clicked
 
@@ -184,7 +189,7 @@ class MyUI(QWidget):
         self.T = []
         if camera_mode == 'hik_test':
             self.save_path = 'arrays_test.npy'
-            right_image_path = "标定测试.png"  # 替换为右边图片的路径
+            right_image_path = "001.png"  # 替换为右边图片的路径
         elif self.state == 'R':
             self.save_path = 'arrays_test_red.npy'
             right_image_path = "images/2025map_red.png"  # 替换为右边图片的路径
@@ -197,15 +202,16 @@ class MyUI(QWidget):
         right_image = cv2.imread(right_image_path)
 
         # 记录缩放比例
-        self.left_scale_x = left_image.shape[1] / 1350.0
-        self.left_scale_y = left_image.shape[0] / 1000.0
+        self.left_scale_x = left_image.shape[1] / L_width
+        self.left_scale_y = left_image.shape[0] / L_height
 
-        self.right_scale_x = right_image.shape[1] / 550.0
-        self.right_scale_y = right_image.shape[0] / 900.0
+        self.right_scale_x = right_image.shape[1] / R_width
+        self.right_scale_y = right_image.shape[0] / R_height
+
         left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
-        self.left_image = cv2.resize(left_image, (1350, 1000))
+        self.left_image = cv2.resize(left_image, (L_width, L_height))
         right_image = cv2.cvtColor(right_image, cv2.COLOR_BGR2RGB)
-        self.right_image = cv2.resize(right_image, (550, 900))
+        self.right_image = cv2.resize(right_image, (R_width, R_height))
         # 缩放图像
         self.update_images()
 
@@ -264,7 +270,7 @@ class MyUI(QWidget):
         if self.capturing:
             img0 = camera_image
             left_image = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
-            self.left_image = cv2.resize(left_image, (1350, 1000))
+            self.left_image = cv2.resize(left_image, (L_width, L_height))
             self.update_images()
 
     def left_top_clicked(self, event):
@@ -359,7 +365,7 @@ class MyUI(QWidget):
 
 
 if __name__ == '__main__':
-    camera_mode = 'test'  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
+    camera_mode = 'hik'  # 'test':测试模式,'hik':海康相机,'video':USB相机（videocapture）
     camera_image = None
     state = 'R'  # R:红方/B:蓝方
 
