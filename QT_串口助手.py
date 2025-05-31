@@ -12,7 +12,7 @@ import serial
 import serial.tools.list_ports
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QCheckBox, QTextEdit, QGroupBox, QMessageBox, QComboBox
+    QCheckBox, QTextEdit, QGroupBox, QMessageBox, QComboBox, QSpinBox, QGridLayout, QStatusBar
 )
 from PyQt5.QtCore import QTimer
 from RM_serial_py.ser_api import Get_CRC8_Check_Sum, Get_CRC16_Check_Sum
@@ -27,6 +27,8 @@ class RadarGUI(QWidget):
         self.robot_labels = {}
         self.state = 'R'  # 初始
         self.last_data = None
+        self.double_vuln_status = 0  # 双倍易伤状态
+        self.dart_target = 0  # 飞镖目标
         self.init_ui()
         self.timer = QTimer()
         self.timer.timeout.connect(self.read_serial_data)
@@ -97,6 +99,7 @@ class RadarGUI(QWidget):
         middle_layout.addLayout(right_layout, 2)
         main_layout.addLayout(middle_layout)
 
+        # 设置易伤位
         bottom_layout = QHBoxLayout()
         self.checkboxes = {
             'R1': QCheckBox("1号英雄"),
@@ -113,12 +116,63 @@ class RadarGUI(QWidget):
         cb_group.setLayout(cb_layout)
 
         self.send_btn = QPushButton("发送易伤标志 (0x020C)")
-        self.send_btn.setStyleSheet("min-width: 120px;")
+        self.send_btn.setStyleSheet("width: 250px;min-width: 250px;")
         self.send_btn.clicked.connect(self.send_vulnerability_flag)
 
         bottom_layout.addWidget(cb_group, 4)
         bottom_layout.addWidget(self.send_btn, 1)
+        # 双倍易伤设置
+        double_vuln_layout = QHBoxLayout()
+        double_vuln_group = QGroupBox("双倍易伤设置")
+        dv_layout = QHBoxLayout()
+
+        self.dv_chance_spin = QSpinBox()
+        self.dv_chance_spin.setRange(0, 2)
+        self.dv_opponent_cb = QCheckBox("对方正在被触发")
+
+        dv_layout.addWidget(QLabel("机会次数:"))
+        dv_layout.addWidget(self.dv_chance_spin)
+        dv_layout.addWidget(self.dv_opponent_cb)
+
+        double_vuln_group.setLayout(dv_layout)
+
+        dv_send_btn = QPushButton("发送双倍易伤状态 (0x020E)")
+        dv_send_btn.setStyleSheet("max-width: 250px;min-width: 250px;")
+        dv_send_btn.clicked.connect(self.send_double_vulnerability)
+
+        double_vuln_layout.addWidget(double_vuln_group, 2)
+        double_vuln_layout.addWidget(dv_send_btn, 1)
+
+        # 飞镖目标
+        dart_layout = QHBoxLayout()
+        dart_group = QGroupBox("飞镖目标设置")
+        da_layout = QHBoxLayout()
+
+        self.dart_select_combo = QComboBox()
+        self.dart_select_combo.addItems(["未选/前哨", "基地固定", "随机固定", "随机移动"])
+
+        da_layout.addWidget(QLabel("当前目标:"))
+        da_layout.addWidget(self.dart_select_combo)
+
+        dart_group.setLayout(da_layout)
+
+        dart_send_btn = QPushButton("发送飞镖目标 (0x0105)")
+        dart_send_btn.setStyleSheet("max-width: 250px;min-width: 250px;")
+        dart_send_btn.clicked.connect(self.send_dart_target)
+
+        dart_layout.addWidget(dart_group, 1)
+        dart_layout.addWidget(dart_send_btn, 1)
+
+        # 接收双倍触发
+        self.dart_status_log = QTextEdit()
+        self.dart_status_log.setText("等待接收双倍触发信息...")
+        self.dart_status_log.setReadOnly(True)
+
+        # 添加 main
         main_layout.addLayout(bottom_layout)
+        main_layout.addLayout(double_vuln_layout)
+        main_layout.addLayout(dart_layout)
+        main_layout.addWidget(self.dart_status_log)
 
         self.setLayout(main_layout)
         self.refresh_serial_ports()
@@ -203,18 +257,15 @@ class RadarGUI(QWidget):
             try:
                 raw = self.ser.read_all()
                 hex_str = " ".join(f"{b:02X}" for b in raw)
-                self.receive_hex.append(f"{hex_str}")
+                self.receive_hex.append(f"{hex_str}") # 显示数据
 
                 start_idx = raw.find(b'\xA5')
-                if start_idx == -1 or len(raw) < start_idx + 31:
+                if start_idx == -1 or len(raw) < start_idx + 23:
                     return
 
                 packet = raw[start_idx:]
                 header = packet[:5]
                 cmd_id = packet[5:7]
-
-                if cmd_id != b'\x05\x03':
-                    return
 
                 data_len = int.from_bytes(header[1:3], 'little')
                 expected_crc8 = header[4]
@@ -230,9 +281,22 @@ class RadarGUI(QWidget):
                 if crc16_recv != crc16_calc:
                     return
 
-                if len(data) >= 24:
-                    self.last_data = data  # 保存最新数据
-                    self.update_robot_coords(data)
+                if cmd_id == b'\x05\x03': # 0x0305 坐标
+                    if len(data) >= 24:
+                        self.last_data = data  # 保存最新数据
+                        self.update_robot_coords(data)
+                if cmd_id == b'\x01\x03':  # 0x0301 双倍触发
+                    if len(data) >= 7:
+                        # 解析数据
+                        sub_id=struct.unpack('<H', data[0:2])[0]
+                        if sub_id == 0x0121:
+                            sender_id = struct.unpack('<H', data[2:4])[0]
+                            receive_id=struct.unpack('<H', data[4:6])[0]
+                            print(sub_id, sender_id, receive_id)
+                            content = data[6]
+
+                            msg=f"双倍触发接收: 发送者ID[{sender_id}] 机会标志[{content}]"
+                            self.dart_status_log.append(msg)
             except Exception as e:
                 print(f"串口读取错误: {str(e)}")
 
@@ -267,6 +331,7 @@ class RadarGUI(QWidget):
             self.robot_labels[name].setText(text)
 
     def send_vulnerability_flag(self):
+        """发送易伤标志 (0x020C)"""
         if not self.ser or not self.ser.is_open:
             QMessageBox.warning(self, "错误", "串口未打开")
             return
@@ -288,7 +353,65 @@ class RadarGUI(QWidget):
         try:
             self.ser.write(packet)
             hex_str = " ".join(f"{b:02X}" for b in packet)
-            self.send_hex.append(f"发送: {hex_str}")
+            self.send_hex.append(f"[0x020C] 发送: {hex_str}")
+        except Exception as e:
+            QMessageBox.warning(self, "错误", f"数据发送失败: {str(e)}")
+
+    def send_double_vulnerability(self):
+        """发送双倍易伤状态 (0x020E)"""
+        if not self.ser or not self.ser.is_open:
+            QMessageBox.warning(self, "错误", "串口未打开")
+            return
+
+        byte_data = 0
+        # 机会次数 (bit 0-1)
+        byte_data |= self.dv_chance_spin.value() & 0b11
+        # 对方状态 (bit 2)
+        if self.dv_opponent_cb.isChecked():
+            byte_data |= 0b100
+
+        payload = bytearray([byte_data])
+        packet = self.build_packet(payload, seq=0x01, cmd_id=[0x02, 0x0E])
+
+        try:
+            self.ser.write(packet)
+            hex_str = " ".join(f"{b:02X}" for b in packet)
+            self.send_hex.append(f"[0x020E] 发送: {hex_str}")
+        except Exception as e:
+            QMessageBox.warning(self, "错误", f"数据发送失败: {str(e)}")
+
+    def send_dart_target(self):
+        """发送飞镖目标 (0x0105)"""
+        if not self.ser or not self.ser.is_open:
+            QMessageBox.warning(self, "错误", "串口未打开")
+            return
+
+        data = bytearray()
+        # 字节0：剩余时间
+        data.append(10)
+
+        # 字节1
+        byte1 = 0
+        # bit 0-2：最近击中目标
+        hit_target = 1
+        byte1 |= hit_target & 0b111
+        # bit 3-5：对方被击中次数
+        opponent_hit = 1 << 3
+        byte1 |= opponent_hit & 0b111000
+        # bit 6-7：当前目标
+        current_target = self.dart_select_combo.currentIndex() << 6
+        byte1 |= current_target & 0b11000000
+        data.append(byte1)
+
+        # 字节2：保留
+        data.append(0)
+
+        packet = self.build_packet(data, seq=0x01, cmd_id=[0x01, 0x05])
+
+        try:
+            self.ser.write(packet)
+            hex_str = " ".join(f"{b:02X}" for b in packet)
+            self.send_hex.append(f"[0x0105] 发送: {hex_str}")
         except Exception as e:
             QMessageBox.warning(self, "错误", f"数据发送失败: {str(e)}")
 
