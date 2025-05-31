@@ -32,19 +32,13 @@ video_dir_raw = "save_video/" + game_dir + "/raw/"
 video_dir_ui = "save_video/" + game_dir + "/ui/"
 
 if state == 'R':
-    # loaded_arrays = np.load('arrays_test_red.npy')  # 加载标定好的仿射变换矩阵
-    loaded_arrays = np.load('arrays_test.npy')  # 加载标定好的仿射变换矩阵
-    # map_image = cv2.imread("images/map_red.jpg")  # 加载红方视角地图
-    # mask_image = cv2.imread("images/map_mask.jpg")  # 加载红发落点判断掩码
-    # map_image = cv2.imread("images/2025map_red.png")  # 加载红方视角地图
+    loaded_arrays = np.load('arrays_test_red.npy')  # 加载标定好的仿射变换矩阵
+    # loaded_arrays = np.load('arrays_test.npy')  # 加载标定好的仿射变换矩阵
     mask_image = cv2.imread("images/2025map_mask.png")  # 加载红发落点判断掩码
-    # mask_image = cv2.imread("output.png")  # 加载红发落点判断掩码
+    # mask_image = cv2.imread("black_map.png")  # 加载红发落点判断掩码
 else:
-    # loaded_arrays = np.load('arrays_test_blue.npy')  # 加载标定好的仿射变换矩阵
-    loaded_arrays = np.load('arrays_test.npy')
-    # map_image = cv2.imread("images/map_blue.jpg")  # 加载蓝方视角地图
-    # mask_image = cv2.imread("images/map_mask.jpg")  # 加载蓝方落点判断掩码
-    # map_image = cv2.imread("images/2025map_blue.png")  # 加载蓝方视角地图
+    loaded_arrays = np.load('arrays_test_blue.npy')  # 加载标定好的仿射变换矩阵
+    # loaded_arrays = np.load('arrays_test.npy')
     mask_image = cv2.imread("images/2025map_mask.png")  # 加载蓝方落点判断掩码
 
 video_writer_map = None
@@ -144,17 +138,17 @@ mapping_table = {
 
 # 盲区预测点位，如果没有定位模块，连接数服务器的非哨兵机器人坐标为（0,0）
 guess_table = {
-    "R1": [(1100, 1400), (900, 1400)],
-    "R2": [(870, 1100), (1340, 680)],
-    "R3": [(100, 100), (200, 200), (300, 300), (400, 400)],
-    "R4": [(870, 1100), (1340, 680)],
-    "R7": [(560, 630), (560, 870)],
+    "R1": [(1000, 400), (960, 1000), (1123, 1195), (800, 1225), (946, 1341), (457, 1232)],
+    "R2": [(200, 100), (900, 900), (900, 600), (1335, 821), (1469, 687)],
+    "R3": [(998, 1059), (1186, 1266), (1663, 246)],
+    "R4": [(998, 1059), (1186, 1266), (1663, 246)],
+    "R7": [(386, 812), (1356, 1093), (1179, 858)],
 
-    "B1": [(1700, 100), (1900, 100)],
-    "B2": [(1930, 400), (1460, 820)],
-    "B3": [(1460, 820), (1930, 400)],
-    "B4": [(1460, 820), (1930, 400)],
-    "B7": [(2240, 870), (2240, 603)],
+    "B1": [(1821, 1092), (1851, 513), (1754, 403), (2050, 347), (1800, 200)],
+    "B2": [(2600, 1400), (1900, 636), (1900, 878), (1500, 750), (1410, 654)],
+    "B3": [(1814, 475), (784, 1372), (1646, 270)],
+    "B4": [(1814, 475), (784, 1372), (1646, 270)],
+    "B7": [(1979, 652)],
 }
 
 
@@ -711,7 +705,7 @@ filter = Filter(window_size=3, max_inactive_time=2)
 weights_path = 'models/car.engine'
 weights_path_next = 'models/armor.engine'
 detector = YOLOv5Detector(weights_path, data='yaml/car.yaml', conf_thres=0.1, iou_thres=0.5, max_det=14, ui=True)
-detector_next = YOLOv5Detector(weights_path_next, data='yaml/armor.yaml', conf_thres=0.50, iou_thres=0.2,
+detector_next = YOLOv5Detector(weights_path_next, data='yaml/armor.yaml', conf_thres=0.4, iou_thres=0.2,
                                max_det=1,
                                ui=True)
 
