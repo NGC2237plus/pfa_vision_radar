@@ -1,25 +1,35 @@
 import threading
 import time
 from collections import deque
+import datetime
+
 import serial
 from information_ui import draw_information_ui
 
 import sys
-
+import os
 import cv2
 import numpy as np
 from detect_function import YOLOv5Detector
 from RM_serial_py.ser_api import build_send_packet, receive_packet, Radar_decision, \
-    build_data_decision, build_data_radar_all
+    build_data_decision, build_data_radar_all, build_data_sentry
 
 state = 'R'  # R:红方/B:蓝方
-USART = True
+USART = 1
 user_com = 'COM7'
 user_mode = 'test'
 user_map = 'images/2025map.png'
-user_img_test = 'images/test_image.jpg'
-user_ExposureTime = 30000
-user_Gain = 8
+# user_img_test = 'images/test_image.jpg'
+user_img_test = 'save_video/5-20-gametest/raw/screen_20250520_201745.avi'
+user_ExposureTime = 20000
+user_Gain = 16
+
+save_img = 1
+game_dir = "5-24-game5-2"
+# 视频保存
+video_dir_map = "save_video/" + game_dir + "/map/"
+video_dir_raw = "save_video/" + game_dir + "/raw/"
+video_dir_ui = "save_video/" + game_dir + "/ui/"
 
 if state == 'R':
     # loaded_arrays = np.load('arrays_test_red.npy')  # 加载标定好的仿射变换矩阵
@@ -36,6 +46,13 @@ else:
     # mask_image = cv2.imread("images/map_mask.jpg")  # 加载蓝方落点判断掩码
     # map_image = cv2.imread("images/2025map_blue.png")  # 加载蓝方视角地图
     mask_image = cv2.imread("images/2025map_mask.png")  # 加载蓝方落点判断掩码
+
+video_writer_map = None
+video_writer_raw = None
+video_writer_ui = None
+image_exts = ['.jpg', '.jpeg', '.png', '.bmp']
+video_exts = ['.mp4', '.avi', '.mov', '.mkv']
+test_type = os.path.splitext(user_img_test)[1].lower()
 
 # 导入战场每个高度的不同仿射变化矩阵
 M_height_r = loaded_arrays[1]  # R型高地
@@ -61,7 +78,6 @@ progress_list = [-1, -1, -1, -1, -1, -1]  # 标记进度列表
 map_backup = cv2.imread(user_map)
 # map_backup = cv2.imread("hik_test.png")
 map = map_backup.copy()
-
 # 初始化盲区预测列表
 guess_list = {
     "B1": True,
@@ -714,8 +730,12 @@ if USART:
 camera_image = None
 
 if camera_mode == 'test':
-    # camera_image = cv2.imread('images/test_image.jpg')
-    camera_image = cv2.imread(user_img_test)
+    if test_type in image_exts:
+        camera_image = cv2.imread(user_img_test)
+    elif test_type in video_exts:
+        Video = cv2.VideoCapture(user_img_test)
+        ret, camera_image = Video.read()
+
 elif camera_mode in ['hik', 'hik_test']:
     # 海康相机图像获取线程
     from hik_camera import call_back_get_image, start_grab_and_get_data_size, close_and_destroy_device, set_Value, \
@@ -742,13 +762,42 @@ img_y = img0.shape[0]
 img_x = img0.shape[1]
 print(img0.shape)
 
+if save_img:
+    # 录视频
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 或使用'MJPG'等编码器
+    fps = 10
+    # 创建目录
+    os.makedirs(video_dir_map, exist_ok=True)
+    os.makedirs(video_dir_raw, exist_ok=True)
+    os.makedirs(video_dir_ui, exist_ok=True)
+
+    if video_writer_map is None:
+        video_path1 = os.path.join(video_dir_map, f"map_{timestamp}.avi")
+        video_writer_map = cv2.VideoWriter(video_path1, fourcc, fps, (600, 320))
+
+    if video_writer_raw is None:
+        video_path2 = os.path.join(video_dir_raw, f"screen_{timestamp}.avi")
+        video_writer_raw = cv2.VideoWriter(video_path2, fourcc, fps, (1300, 900))
+
+    if video_writer_ui is None:
+        video_path3 = os.path.join(video_dir_ui, f"screen_{timestamp}.avi")
+        video_writer_ui = cv2.VideoWriter(video_path3, fourcc, fps, (1300, 900))
+
 while True:
     # 刷新裁判系统信息UI图像
     information_ui_show = information_ui.copy()
     map = map_backup.copy()
     det_time = 0
+    if test_type in video_exts and camera_mode == 'test':
+        ret, camera_image = Video.read()
     img0 = camera_image.copy()
     ts = time.time()
+
+    if save_img:
+        ggg = cv2.resize(img0, (1300, 900))
+        video_writer_raw.write(ggg)
+
     # 第一层神经网络识别
     result0 = detector.predict(img0)
     det_time += 1
@@ -867,9 +916,6 @@ while True:
                                 (int(filtered_xyz[0]) - 100, int(filtered_xyz[1]) + 60),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
 
-    te = time.time()
-    t_p = te - ts
-    print("fps:", 1 / t_p)  # 打印帧率
     # 绘制UI
     _ = draw_information_ui(progress_list, state, information_ui_show)
     cv2.putText(information_ui_show, "vulnerability_chances: " + str(double_vulnerability_chance),
@@ -884,4 +930,11 @@ while True:
     img0 = cv2.resize(img0, (1300, 900))
     cv2.imshow('img', img0)
 
+    if save_img:
+        video_writer_map.write(map_show)
+        video_writer_ui.write(img0)
+
+    te = time.time()
+    t_p = te - ts
+    # print("fps:", 1 / t_p)  # 打印帧率
     key = cv2.waitKey(1)
