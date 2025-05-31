@@ -655,7 +655,7 @@ def ser_receive():
                     double_vulnerability_chance, opponent_double_vulnerability = Radar_decision(received_data2)
                 if target_result is not None:
                     received_cmd_id3, received_data3, received_seq3 = target_result
-                    target = (list(received_data3)[1] & 0b1100000) >> 5
+                    target = (list(received_data3)[1] & 0b11000000) >> 6
 
                 # 从缓冲区中移除已解析的数据包
                 buffer = buffer[sof_index + len(packet_data):]
