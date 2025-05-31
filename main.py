@@ -546,6 +546,10 @@ def ser_send():
             ser_data = build_data_radar_all(send_map, state)
             packet, seq = build_send_packet(ser_data, seq, [0x03, 0x05])
             ser1.write(packet)
+
+            # ser_data = build_data_sentry(send_map, state)
+            # packet, seq = build_send_packet(ser_data, seq, [0x03, 0x01])
+            # ser1.write(packet)
             time.sleep(0.2)
             # print(send_map,seq)
             # 超过单点预测时间上限，更新上次预测的进度

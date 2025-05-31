@@ -160,6 +160,29 @@ def build_data_decision(chances,state):
     data.extend(bytearray(struct.pack('B', chances)))
     return data
 
+def build_data_sentry(send_map,state):
+    data = bytearray()
+    cmd_id = [0x02, 0x00]
+    cmd_id = bytearray([cmd_id[1], cmd_id[0]])
+    data.extend(cmd_id)
+    if state == 'R':
+        data.extend(bytearray(struct.pack('H', 9)))
+        data.extend(bytearray(struct.pack('H', 7)))
+        data.extend(bytearray(struct.pack('H', int(send_map['B3'][0]))))  # x坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['B3'][1]))))  # y坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['B4'][0]))))  # x坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['B4'][1]))))  # y坐标 (小端)
+    else:
+        data.extend(bytearray(struct.pack('H', 109)))
+        data.extend(bytearray(struct.pack('H', 107)))
+        data.extend(bytearray(struct.pack('H', int(send_map['R1'][0]))))  # x坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['R1'][1]))))  # y坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['R3'][0]))))  # x坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['R3'][1]))))  # y坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['R4'][0]))))  # x坐标 (小端)
+        data.extend(bytearray(struct.pack('H', int(send_map['R4'][1]))))  # y坐标 (小端)
+
+    return data
 
 
 # 完整数据包构建
